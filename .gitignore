@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Dados e BD
+*.bd
+*.db
+*.TXT
+*.txt
