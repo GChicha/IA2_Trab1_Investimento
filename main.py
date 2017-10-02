@@ -9,10 +9,13 @@ def insert_on_bd(cotacao_diaria, cursor):
 
 def main():
     parser = argparse.ArgumentParser(description="Extrai informações do arquivo bovespa")
-    parser.add_argument('--entrada', metavar='FILE', nargs='*', type=argparse.FileType('r'),
+    parser.add_argument('--entrada', metavar='FILE', nargs='+', type=argparse.FileType('r'),
                         help="Arquivos de entrada")
     parser.add_argument('--bdname', metavar='BD', nargs='?', default=":memory:",
-                        help="Nome do arquivo do banco de dados")
+                        help="Nome do arquivo do banco de dados se nenhum nome for passado o\
+                              banco não será persistido")
+    parser.add_argument('--empresa', metavar='EMPRESA', nargs='+',
+                        help="Empresa a ser avaliada, pode ser inserida mais de uma empresa")
 
     parsed = parser.parse_args()
 
