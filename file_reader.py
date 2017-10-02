@@ -114,11 +114,9 @@ def parse_header(linha):
     return data
 
 def parse_file(arquivo_entrada):
-    result = []
     for line in arquivo_entrada:
         if line[0:2] == "01":
-            result.append(parse_line(line))
-    return result
+            yield parse_line(line)
 
 def main():
     parser = argparse.ArgumentParser(description="Extrai informações do arquivo bovespa")
