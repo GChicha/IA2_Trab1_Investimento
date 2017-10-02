@@ -1,3 +1,4 @@
+#! /bin/env python
 import sqlite3
 import argparse
 
@@ -17,11 +18,14 @@ def main():
     parser.add_argument('--empresa', metavar='EMPRESA', nargs='+',
                         help="Empresa a ser avaliada, pode ser inserida mais de uma empresa",
                         required=True)
+    parser.add_argument('--debug', action='store_true')
 
     parsed = parser.parse_args()
 
     banco_dados = sqlite3.connect(parsed.bdname)
-    banco_dados.set_trace_callback(print)
+
+    if parsed.debug:
+        banco_dados.set_trace_callback(print)
 
     cursor_bd = banco_dados.cursor()
 
@@ -41,8 +45,7 @@ def main():
                         dis_papel INT)''')
 
     for arquivo in parsed.entrada:
-        cotacoes = parse_file(arquivo)
-        for cotacao in cotacoes:
+        for cotacao in parse_file(arquivo):
             insert_on_bd(cotacao, cursor_bd)
 
     banco_dados.commit()
