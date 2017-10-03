@@ -1,24 +1,27 @@
-#! /bin/env python
+#! /bin/env python3
 import sqlite3
 import argparse
 
-from file_reader import parse_file
+from file_reader import parse_file, CotacaoDia
 
 def insert_on_bd(cotacao_diaria, cursor):
-    cursor.execute("INSERT INTO Cotacoes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    # FIXME Replace para evitar a fadiga
+    cursor.execute("INSERT OR IGNORE INTO Cotacoes VALUES\
+                   (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                    , cotacao_diaria)
 
 def main():
     parser = argparse.ArgumentParser(description="Extrai informações do arquivo bovespa")
-    parser.add_argument('--entrada', metavar='FILE', nargs='+', type=argparse.FileType('r'),
-                        help="Arquivos de entrada", required=True)
+    parser.add_argument('--entrada', metavar='FILE', nargs='*', type=argparse.FileType('r'),
+                        help="Arquivos de entrada")
     parser.add_argument('--bdname', metavar='BD', nargs='?', default=":memory:",
                         help="Nome do arquivo do banco de dados se nenhum nome for passado o\
                               banco não será persistido")
     parser.add_argument('--empresa', metavar='EMPRESA', nargs='+',
-                        help="Empresa a ser avaliada, pode ser inserida mais de uma empresa",
+                        help="Codigo de negociação da empresa a ser avaliada, pode ser inserida\
+                              mais de uma empresa",
                         required=True)
-    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--debug', action='store_true', help="Imprime operações com banco de dados")
 
     parsed = parser.parse_args()
 
@@ -42,13 +45,17 @@ def main():
                         preco_exercicio FLOAT, indicador_correcao TEXT,
                         data_venc DATE, fator_cotacao INT,
                         preco_pontos FLOAT, cod_isin TEXT,
-                        dis_papel INT)''')
+                        dis_papel INT,
+                        PRIMARY KEY (data, cod_bdi, cod_neg))''')
 
     for arquivo in parsed.entrada:
-        for cotacao in parse_file(arquivo):
+        # Só insere no banco se a empresa é objeto de avaliação
+        for cotacao in filter(lambda cot: cot.cod_neg in parsed.empresa, parse_file(arquivo)):
             insert_on_bd(cotacao, cursor_bd)
 
     banco_dados.commit()
+
+    # TODO Aqui vem a parte que importa
 
 if __name__ == '__main__':
     main()
