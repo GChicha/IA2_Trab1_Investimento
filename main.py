@@ -4,10 +4,12 @@ import argparse
 
 from file_reader import parse_file, CotacaoDia
 
+from agente import agente
+
 def insert_on_bd(cotacao_diaria, cursor):
-    # FIXME Replace para evitar a fadiga
-    cursor.execute("INSERT OR IGNORE INTO Cotacoes VALUES\
-                   (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    # FIXME Ignore para evitar a fadiga
+    cursor.execute('''INSERT OR IGNORE INTO Cotacoes VALUES
+                   (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'''
                    , cotacao_diaria)
 
 def init_bd(cursor):
@@ -60,6 +62,8 @@ def main():
             insert_on_bd(cotacao, cursor_bd)
 
     banco_dados.commit()
+
+    agente(parsed.empresa, cursor_bd)
 
     # TODO Aqui vem a parte que importa
 
