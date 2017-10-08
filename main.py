@@ -4,11 +4,17 @@ import argparse
 
 from file_reader import parse_file, CotacaoDia
 
-def insert_on_bd(cotacao_diaria, cursor):
+def insert_on_bd(cotacao_diaria, cursor):   
     # FIXME Replace para evitar a fadiga
-    cursor.execute("INSERT OR IGNORE INTO Cotacoes VALUES\
-                   (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    cursor.execute("INSERT OR IGNORE INTO Cotacoes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                    , cotacao_diaria)
+
+def min_max(lista_cotacoes):
+    Min = min(lista_cotacoes, key = lambda x: x.preco_min)
+    Max = max(lista_cotacoes, key = lambda x: x.preco_max)
+    print("Preco baixo = ", Min.preco_min / Max.preco_max)
+    return Min.preco_min / Max.preco_max
+
 
 def main():
     parser = argparse.ArgumentParser(description="Extrai informações do arquivo bovespa")
@@ -54,7 +60,6 @@ def main():
             insert_on_bd(cotacao, cursor_bd)
 
     banco_dados.commit()
-
     # TODO Aqui vem a parte que importa
 
 if __name__ == '__main__':
