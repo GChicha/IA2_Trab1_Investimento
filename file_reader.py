@@ -41,7 +41,7 @@ CotacaoDia = namedtuple('CotacaoDia',
                             'preco_pontos',
                             'cod_isin',
                             'dis_papel'
-                            ])
+                        ])
 
 def parse_line(linha):
     data = _convert_to_date(linha[2:10])

@@ -57,8 +57,7 @@ def main():
     init_bd(cursor_bd)
 
     for arquivo in parsed.entrada:
-        # Só insere no banco se a empresa é objeto de avaliação
-        for cotacao in filter(lambda cot: cot.cod_neg in parsed.empresa, parse_file(arquivo)):
+        for cotacao in parse_file(arquivo):
             insert_on_bd(cotacao, cursor_bd)
 
     banco_dados.commit()

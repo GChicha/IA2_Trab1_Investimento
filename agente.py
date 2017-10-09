@@ -1,55 +1,68 @@
+from collections import namedtuple
+from functools import reduce
+
 from file_reader import CotacaoDia
 
-def get_cotacoes_2anos_empresa(empresa, cursor):
-    return cursor.execute('''SELECT * FROM cotacoes WHERE cod_neg LIKE ? ORDER BY data''',
-                          (empresa,))
+Variavel = namedtuple("Variavel", "primeira segunda terceira quarta quinta sexta")
 
-def preco_baixo(cotacoes):
-    '''Com base no extremos define se está em baixa'''
-    menor_valor = min(cotacoes, key=lambda x: x.preco_min)
-    maior_valor = max(cotacoes, key=lambda x: x.preco_max)
+def bd_to_cot(raw_cotacao):
+    '''Converte de tupla do bd para namedtuple'''
+    return CotacaoDia(*raw_cotacao)
 
-    return menor_valor.preco_min / maior_valor.preco_max
+def get_cotacoes_empresa(empresa, cursor):
+    return map(bd_to_cot,
+               cursor.execute('''SELECT * FROM cotacoes WHERE cod_neg LIKE ? ORDER BY data''',
+                              (empresa,)))
+
+def get_lista_empresas(cursor):
+    '''Obtem a lista dos códigos de negociação'''
+    return map(lambda x: x[0], cursor.execute('''SELECT cod_neg FROM cotacoes GROUP BY cod_neg'''))
+
+def get_last(empresa, cursor):
+    '''Obtem o ultimo da empresa'''
+    return bd_to_cot(cursor.execute('''SELECT *
+                                         FROM cotacoes
+                                         WHERE cod_neg LIKE ?
+                                         ORDER BY data ASC
+                                         LIMIT 1''',
+                                    empresa).fetchone()[0])
+
+
+def abaixo_media(empresa, cursor):
+    '''Retorna se a empresa está abaixo da sua média'''
+    cotacoes = list(get_cotacoes_empresa(empresa, cursor))
+
+    soma_todas_medias_diarias = reduce(lambda c1, c2: c1 + c2.preco_med, [0] + cotacoes)
+
+    media_diaria = soma_todas_medias_diarias / len(cotacoes)
+
+    return get_last(empresa, cursor).preco_med < media_diaria
+
+def mais_cresce_que_cai(empresa, cursor):
+    '''Retorna se a empresa mais cresce do que cai'''
+    cotacoes = list(get_cotacoes_empresa(empresa, cursor))
+
+    qnt_sobe = 0
+
+    for i in range(1, len(cotacoes)):
+        qnt_sobe += 1 if cotacoes[i] > cotacoes[i - 1] else 0
+
+    return True if (qnt_sobe / len(cotacoes)) > 0.5 else False
 
 def duracao_susto(cotacoes):
-    '''Duração de um susto, em dias'''
+    '''Duração de um susto, se a diferenca entre os dias do maior valor
+       e menor valor eh muito grande'''
     menor_valor = min(enumerate(cotacoes), key=lambda x: x[1].preco_min)
     maior_valor = max(enumerate(cotacoes), key=lambda x: x[1].preco_max)
 
-    return abs(menor_valor[0] - maior_valor[0])/len(cotacoes)
+    metade_dias = len(cotacoes)/2
 
-def media_prejuizo(cotacoes):
-    '''Calcula a media dos prejuizo'''
-    prejuizo_acumulado = 0
-    dias_prejuizo = 0
+    dif_menor_maior = abs(menor_valor[0] - maior_valor[0])
 
-    for i in range(1, len(cotacoes)):
-        if cotacoes[i].preco_med - cotacoes[i - 1].preco_med < 0:
-            prejuizo_acumulado += cotacoes[i].preco_med / cotacoes[i - 1].preco_med
-            dias_prejuizo += 1
+    return dif_menor_maior < metade_dias
 
-    return prejuizo_acumulado / dias_prejuizo
+def generate_agente(cursor):
+    empresas = get_lista_empresas(cursor)
 
-def dias_crescimento_ponderado(cotacoes):
-    '''Dias com crecimento, ponderado considerando que crescimento mais recentes são melhores'''
-    ponderador = 1
-    dias_crescimento = 0
-
-    acumulador_ponderador = 0
-
-    for i in range(1, len(cotacoes)):
-        if cotacoes[i].preco_med - cotacoes[i - 1].preco_med > 0:
-            dias_crescimento += ponderador
-
-            acumulador_ponderador += ponderador
-
-            dias_crescimento /= acumulador_ponderador
-        ponderador *= 2
-
-    return dias_crescimento
-
-def agente(empresas, cursor):
     for empresa in empresas:
-        cotacoes = list(map(lambda cotacao: CotacaoDia(*cotacao), get_cotacoes_2anos_empresa(empresa, cursor)))
-
-        print(str(empresa) + ": " + str(dias_crescimento_ponderado(cotacoes) * preco_baixo(cotacoes) * media_prejuizo(cotacoes) * duracao_susto(cotacoes)))
+        cotacoes = list(get_cotacoes_empresa(empresa, cursor))
