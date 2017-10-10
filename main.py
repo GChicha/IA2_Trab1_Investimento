@@ -2,9 +2,9 @@
 import sqlite3
 import argparse
 
-from file_reader import parse_file, CotacaoDia
+from file_reader import parse_file
 
-from agente import agente
+from agente import generate_agente, inferencia
 
 def insert_on_bd(cotacao_diaria, cursor):
     # FIXME Ignore para evitar a fadiga
@@ -62,7 +62,14 @@ def main():
 
     banco_dados.commit()
 
-    agente(parsed.empresa, cursor_bd)
+    cpt = generate_agente(cursor_bd)
+
+    respota = zip(map(lambda empresa: inferencia(empresa, cursor_bd, cpt), parsed.empresa),
+                  parsed.empresa)
+
+    respota = sorted(list(respota), key=lambda x: x[0], reverse=True)
+
+    print(respota[0][1] + ": " + str(respota[0][0]))
 
     # TODO Aqui vem a parte que importa
 
